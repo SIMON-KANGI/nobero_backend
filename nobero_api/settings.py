@@ -9,7 +9,7 @@ SECRET_KEY = 'django-insecure-%yt7&s!uz-g6bgltbgu0oe(t$ye$n@jb6ek&xcpa$hz!72)=2j
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = []  # Add your domain here for production
 
 # Application definition
@@ -23,9 +23,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'scraper',
     'nobero_eccommerce',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
