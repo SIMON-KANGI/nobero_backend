@@ -2,6 +2,7 @@ import scrapy
 from bs4 import BeautifulSoup
 from scraper.models import Product, SKU
 import re
+from scrapy_selenium import SeleniumRequest
 
 class NoberoSpider(scrapy.Spider):
     name = 'nobero'
@@ -10,11 +11,13 @@ class NoberoSpider(scrapy.Spider):
         'https://nobero.com/collections/mens-oversized-tees',
         'https://nobero.com/collections/fashion-joggers-men',
         'https://nobero.com/collections/best-selling-co-ord-sets'
+        
+        
     ]
 
     def start_requests(self):
         for url in self.start_urls:
-            yield scrapy.Request(url, callback=self.parse)
+            yield SeleniumRequest(url=url, callback=self.parse)
 
     def parse(self, response):
         # Parse the main collection page
@@ -41,9 +44,11 @@ class NoberoSpider(scrapy.Spider):
         self.logger.info('Parsing product page: %s', response.url)
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extract category from breadcrumb
-        category_element = soup.select_one('div.filter-collection-container h1.leading-7')
+       
+        category_element = soup.select_one('h1.list-title')
         category = category_element.get_text(strip=True) if category_element else 'Unknown'
+
+        self.logger.info(f'Extracted category: {category}')
 
         # Extract image URL
         img_element = soup.select_one('img.image-placeholder-bg')
@@ -84,12 +89,14 @@ class NoberoSpider(scrapy.Spider):
         product.save()
         self.logger.info(f'Saved product with URL: {response.url}')
 
+
+#if the price is a string convert to float
     def extract_price(self, element):
         """ Extract price from element and convert to float. """
         if element:
             price_text = element.get_text(strip=True)
             price_clean = re.sub(r'[^\d.]', '', price_text)
-            try:
+            try:                                             
                 return float(price_clean)
             except ValueError:
                 self.logger.error(f'Invalid price format: {price_clean}')
@@ -105,7 +112,7 @@ class NoberoSpider(scrapy.Spider):
             except ValueError:
                 self.logger.error(f'Invalid sale price format: {sale_clean}')
         return 0.00
-
+#extract the product details
     def extract_detail(self, element):
         """ Extract product detail if available, otherwise return 'Unknown'. """
         return element.get_text(strip=True) if element else 'Unknown'
@@ -114,7 +121,7 @@ class NoberoSpider(scrapy.Spider):
         """ Handle SKU creation and association. """
         colors = [option.get_text(strip=True) for option in soup.select('span.color-label')]
         for color in colors:
-            sizes = [size.get_text(strip=True) for size in soup.select(f'div#variant-{color} .size')]
+            sizes = [size.get_text(strip=True) for size in soup.select('label.size-select')]
             for size in sizes:
                 sku, _ = SKU.objects.get_or_create(color=color, size=size)
                 product.available_skus.add(sku)
